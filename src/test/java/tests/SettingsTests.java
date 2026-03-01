@@ -21,16 +21,11 @@ public class SettingsTests extends BaseTest {
     static {
         logger.setLevel(Level.INFO);
     }
-    private AndroidDriver driver;
     private SettingsScreen settingsScreen;
 
     @BeforeMethod
     public void setupTest() throws MalformedURLException {
-        if (!DriverFactory.isDriverAlive()) {
-            driver = DriverFactory.getDriver();   // δημιουργεί/εκκινεί νέο
-        } else {
-            driver = DriverFactory.getDriver();   // παίρνει τον υπάρχοντα (ή τον ίδιο)
-        }
+        AndroidDriver driver = DriverFactory.getDriver();
 
         settingsScreen = new SettingsScreen(driver);
         LoginScreen loginScreen = new LoginScreen(driver);
