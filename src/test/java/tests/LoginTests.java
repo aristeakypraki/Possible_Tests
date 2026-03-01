@@ -2,144 +2,147 @@ package tests;
 
 import helpers.DriverFactory;
 import io.appium.java_client.android.AndroidDriver;
+import io.qameta.allure.Allure;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.testng.ITestResult;
 import org.testng.annotations.*;
 import screens.LoginScreen;
 
+import java.io.ByteArrayInputStream;
+import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import java.net.MalformedURLException;
-
 import static org.testng.Assert.*;
-
 
 public class LoginTests {
 
     private static final Logger logger = Logger.getLogger(LoginTests.class.getName());
 
-
     static {
         logger.setLevel(Level.INFO);
     }
 
-
     private AndroidDriver driver;
     private LoginScreen loginScreen;
 
-
-    @BeforeMethod
+    @BeforeMethod(alwaysRun = true)
     public void setUpLoginTest() throws MalformedURLException {
         logger.info("Setting up login test...");
-        // Παίρνει driver μόνο αν δεν υπάρχει ήδη
-        if (!DriverFactory.isDriverAlive()) {
-            driver = DriverFactory.getDriver();
-            logger.info("Driver created and app launched.");
-        } else {
-            driver = DriverFactory.getDriver(); // παίρνουμε τον ίδιο driver
-            logger.info("Using existing driver, app already open.");
-        }
 
+        // παίρνουμε driver (είτε είναι νέος είτε όχι)
+        driver = DriverFactory.getDriver();
         loginScreen = new LoginScreen(driver);
 
-        boolean activityChanged = loginScreen.waitForActivityToChange(
-                ".InitialActivity",
-                10
-        );
+        // wait να περάσει το initial αν υπάρχει
+        boolean activityChanged = loginScreen.waitForActivityToChange(".InitialActivity", 15);
         if (!activityChanged) {
-            System.out.println("Η εφαρμογή είναι ήδη στο Login Screen ή δεν προχώρησε από InitialActivity");
+            logger.info("App already on Login screen or did not move from InitialActivity");
+        }
+
+        logger.info("Current activity: " + driver.currentActivity());
+    }
+
+    // ✅ Attachments only on FAILURE
+    @AfterMethod(alwaysRun = true)
+    public void attachAllureArtifactsOnFailure(ITestResult result) {
+        if (result.getStatus() != ITestResult.FAILURE) return;
+
+        try {
+            if (driver != null) {
+                byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+                Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
+
+                String pageSource = driver.getPageSource();
+                Allure.addAttachment("Page Source", "text/xml", pageSource, ".xml");
+
+                try {
+                    Allure.addAttachment("Current Activity", driver.currentActivity());
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            Allure.addAttachment("Allure attachment error", e.toString());
         }
     }
 
-
-    //visibility test
-    @Test (priority = 1)
+    @Test(priority = 1, groups = {"tier:regression", "layer:ui", "domain:core", "feature:login"})
     public void shouldDisplayAllPinKeys() {
-        // Έλεγχος keys 0-9 με loop
-        logger.info("Checking visibility of PIN keys 0-9...");
+        Allure.step("Verify PIN keys 0-9 are visible");
         for (int i = 0; i <= 9; i++) {
             boolean keyVisible = loginScreen.isKeyVisible(String.valueOf(i));
             logger.info("Key " + i + " visible? " + keyVisible);
             assertTrue(keyVisible, "Key " + i + " isn't visible");
-
         }
-        logger.info("Checking OK, Back, Exit buttons and labels...");
+
+        Allure.step("Verify main buttons are visible");
         assertTrue(loginScreen.isOkButtonVisible(), "OK Button isn't visible");
         assertTrue(loginScreen.isBackButtonVisible(), "Back Button isn't visible");
         assertTrue(loginScreen.isExitButtonVisible(), "Exit button isn't visible");
 
+        Allure.step("Verify labels are visible");
         assertTrue(loginScreen.isTitleLabelVisible(), "Title Label isn't visible");
         assertTrue(loginScreen.isCardViewLabelVisible(), "Card Label isn't visible");
-
-        logger.info("All elements visibility checks passed.");
     }
 
-    //test periexomenou keimenou
-    @Test (priority = 2)
+    @Test(priority = 2, groups = {"tier:regression", "layer:ui", "domain:core", "feature:login"})
     public void shouldDisplayCorrectLoginLabels() {
-        logger.info("Checking text labels on login screen...");
+        Allure.step("Read and verify login screen labels");
         String expectedTitle = "Enter PIN";
+
         String actualTitle = loginScreen.getTitleText();
         String actualCardLabel = loginScreen.getCardViewText();
+
         logger.info("Title label: " + actualTitle);
         logger.info("Card view label: " + actualCardLabel);
 
-        assertEquals(loginScreen.getTitleText(), expectedTitle,
-                "Title label text is incorrect");
-
-        assertEquals(loginScreen.getCardViewText(), expectedTitle,
-                "Card view text is incorrect");
-        logger.info("Test Passed, all texts in labels are correct!!");
-
+        assertEquals(actualTitle, expectedTitle, "Title label text is incorrect");
+        assertEquals(actualCardLabel, expectedTitle, "Card view text is incorrect");
     }
 
-    @Test (priority = 3)
-    public void verifyWrongPinShowsAlertAndCanRetry(){
-        //eisagwgi lathos PIN
+    @Test(priority = 3, groups = {"tier:regression", "layer:ui", "domain:core", "feature:login"})
+    public void verifyWrongPinShowsAlertAndCanRetry() {
+        Allure.step("Enter wrong PIN");
         loginScreen.enterPin("1987");
 
+        Allure.step("Tap OK");
         loginScreen.tapOkButton();
 
-         String expectedText="Wrong PIN!";
-         String expectedTextConfirmButton="New attempt";
-         String actualPin=loginScreen.getWrongPinText();
+        Allure.step("Verify wrong PIN popup content and retry");
+        String expectedText = "Wrong PIN!";
+        String expectedConfirmButton = "New attempt";
 
-        logger.info("Wrong Pin label: " + actualPin);
+        assertTrue(loginScreen.isWrongPinPopupVisible(), "Wrong PIN pop up isn't visible");
+        assertEquals(loginScreen.getWrongPinText(), expectedText, "Wrong PIN pop up text is incorrect");
+        assertEquals(loginScreen.getConfirmButtonText(), expectedConfirmButton, "Wrong text in confirm button");
 
-        assertTrue(loginScreen.isWrongPinPopupVisible(),"wrong Pin Pop up isn't visible");
-        assertEquals(loginScreen.getWrongPinText(),expectedText,"Wrong Pin pop up Text is incorrect");
-        assertEquals(loginScreen.getConfirmButtonText(),expectedTextConfirmButton,"wrong Text in confirm Button");
         loginScreen.tapConfirmButton();
-        try {
-            Thread.sleep(1000); // περιμένουμε 1 δευτερόλεπτο για να κλείσει το popup
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        assertFalse(loginScreen.isWrongPinPopupVisible(),"Wrong PIN popup did not close as expected.");
 
-           logger.info("Test Passed,Wrong PIN popup close as expected");
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
+        assertFalse(loginScreen.isWrongPinPopupVisible(), "Wrong PIN popup did not close as expected.");
     }
-    @Test (priority = 4)
-    public void shouldNavigateToMainMenuAfterValidPin() {
 
-        // Εισαγωγή PIN 1111
+    @Test(
+            priority = 4,
+            groups = {"tier:smoke", "tier:regression", "layer:ui", "domain:core", "feature:login"}
+    )
+    public void shouldNavigateToMainMenuAfterValidPin() {
+        Allure.step("Enter valid PIN 1111");
         loginScreen.enterPin("1111");
 
-        // Πατάμε OK
+        Allure.step("Tap OK");
         loginScreen.tapOkButton();
 
-
-        //elegxos epomenis othonis
+        Allure.step("Verify navigation to Main menu");
         assertTrue(loginScreen.waitForMainActivity(2), "Did not navigate to Main menu after PIN entry");
     }
 
-
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void tearDownClass() {
-        // Εδώ μπορείς να κλείσεις τον driver μόνο όταν τελειώσουν όλα τα tests
         if (driver != null) {
             driver.quit();
             driver = null;
         }
     }
-    }
+}
