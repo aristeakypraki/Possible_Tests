@@ -80,27 +80,27 @@ public class LoginScreen {
 
     // visibility checks
     public boolean isBackButtonVisible() {
-        Allure.step("Check Back button is visible");
+      //  Allure.step("Check Back button is visible");
         return isElementVisible(backButton);
     }
 
     public boolean isOkButtonVisible() {
-        Allure.step("Check OK button is visible");
+       // Allure.step("Check OK button is visible");
         return isElementVisible(okButton);
     }
 
     public boolean isExitButtonVisible() {
-        Allure.step("Check Exit button is visible");
+       // Allure.step("Check Exit button is visible");
         return isElementVisible(exitButton);
     }
 
     public boolean isTitleLabelVisible() {
-        Allure.step("Check Title label is visible");
+       // Allure.step("Check Title label is visible");
         return isElementVisible(titleLabel);
     }
 
     public boolean isCardViewLabelVisible() {
-        Allure.step("Check Card view label is visible");
+       // Allure.step("Check Card view label is visible");
         return isElementVisible(cardViewLabel);
     }
 
@@ -118,22 +118,22 @@ public class LoginScreen {
 
     // texts
     public String getTitleText() {
-        Allure.step("Read Title label text");
+       // Allure.step("Read Title label text");
         return driver.findElement(titleLabel).getText();
     }
 
     public String getCardViewText() {
-        Allure.step("Read Card view label text");
+        //Allure.step("Read Card view label text");
         return driver.findElement(cardViewLabel).getText();
     }
 
     public String getWrongPinText() {
-        Allure.step("Read Wrong PIN popup text");
+       // Allure.step("Read Wrong PIN popup text");
         return driver.findElement(wrongPinLabel).getText();
     }
 
     public String getConfirmButtonText() {
-        Allure.step("Read Confirm button text");
+        //Allure.step("Read Confirm button text");
         return driver.findElement(confirmButton).getText();
     }
 

@@ -3,6 +3,7 @@ package tests;
 import helpers.DriverFactory;
 import io.appium.java_client.android.AndroidDriver;
 import io.qameta.allure.Allure;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.testng.ITestResult;
@@ -11,6 +12,8 @@ import screens.LoginScreen;
 
 import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,6 +69,34 @@ public class LoginTests {
         }
     }
 
+
+    @AfterMethod(alwaysRun = true)
+    public void restartAppIfWrongPinTestFailed(ITestResult result) {
+        if (result.getStatus() != ITestResult.FAILURE) return;
+        if (!"verifyWrongPinShowsAlertAndCanRetry".equals(result.getMethod().getMethodName())) return;
+
+        final String APP_ID = "gr.cardlink.possible";
+
+        try {
+            logger.warning("Wrong PIN test failed -> force-stop + activate (no data clear)");
+
+            Map<String, Object> args = new HashMap<>();
+            args.put("command", "am");
+            args.put("args", java.util.Arrays.asList("force-stop", APP_ID));
+            ((JavascriptExecutor) driver).executeScript("mobile: shell", args);
+
+            try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+
+            driver.activateApp(APP_ID);
+
+            loginScreen = new LoginScreen(driver);
+            loginScreen.waitForActivityToChange(".InitialActivity", 15);
+
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Failed to relaunch app after wrong pin test failure", e);
+        }
+    }
+
     @Test(priority = 1, groups = {"tier:regression", "layer:ui", "domain:core", "feature:login"})
     public void shouldDisplayAllPinKeys() {
         Allure.step("Verify PIN keys 0-9 are visible");
@@ -103,9 +134,9 @@ public class LoginTests {
     @Test(priority = 3, groups = {"tier:regression", "layer:ui", "domain:core", "feature:login"})
     public void verifyWrongPinShowsAlertAndCanRetry() {
         Allure.step("Enter wrong PIN");
-        loginScreen.enterPin("1987");
+        loginScreen.enterPin("1983");
 
-        Allure.step("Tap OK");
+      //  Allure.step("Tap OK");
         loginScreen.tapOkButton();
 
         Allure.step("Verify wrong PIN popup content and retry");
